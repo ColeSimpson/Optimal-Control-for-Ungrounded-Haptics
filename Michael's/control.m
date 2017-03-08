@@ -37,11 +37,14 @@ if ~isreal(A) || sum(sum(isnan(A))) > 0
     return
 end
 
-% discretize dynamics of arm model
+% convert dynamics to discrete time -- may be a native function for this
 [Ad, Bd, fd] = discretize( armModel.Ts, A, B, f );
 
 % define LTI model for MPT3 package
 model = LTISystem('A',Ad,'B',Bd,'f',fd,'C',C,'D',D,'g',g,'Ts',armModel.Ts);
+% system can be affine with the form:
+%   x_dot = Ax + Bu + f
+%       y = Cx + Du + g
 
 % make model track a reference
 model.y.with('reference');
