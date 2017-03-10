@@ -1,4 +1,4 @@
-function [u, flag] = control( nonlinmodel, ref )
+function [u, flag] = control( nonlinmodel, state, ref, ctrl )
 % This function computes the MPC control output for a model of the arm
 % tracking a reference state in joint, task (Cartesian), or force space. It
 % employs the Multi-Parametric Toolbox MPT3. The MPT model is created by
@@ -31,7 +31,7 @@ function [u, flag] = control( nonlinmodel, ref )
 
 
 % linearize arm model (and check linearization)
-[A, B, f, C, D, g] = linearize( nonlinmodel );
+[A, B, f, C, D, g] = linearize( nonlinmodel, state, ctrl );
 if ~isreal(A) || sum(sum(isnan(A))) > 0
     flag = 1;
     return
@@ -80,7 +80,7 @@ end
 
 
 
-function [A, B, c, C, D, e] = linearize( nonlinmodel, state )
+function [A, B, c, C, D, e] = linearize( nonlinmodel, state, ctrl )
 % This function linearizes the dynamics and output equation for an arm
 % model. It computes the 1st-order Taylor series approximation of
 % dynamics dx/dt = f(x,u) and output (e.g., forward kinematics) y = g(x,u)
@@ -111,12 +111,13 @@ eps = 1e-3;
 
 % allocate memory for matrices
 nStates = length(state);
+nInputs = length(ctrl);
 nOutputs = length(nonlinmodel(state));
 A = zeros(nStates);
 B = zeros(nStates,nInputs);
 
 % compute dynamics matrix, A
-f = dynamics(arm, x_est);
+f = nonlinmodel( ctrl, state );
 for i = 1:nStates
 x_eps = x_est;
 x_eps(i) = x_eps(i) + eps;    % one state perturbed

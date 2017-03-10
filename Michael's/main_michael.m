@@ -6,20 +6,23 @@ set(0,'DefaultFigureWindowStyle','docked');
 addpath( genpath([ fileparts(pwd) '/tbxmanager' ]));
 
 %% Whatever initialization nonsense
+% Define reference vector
+ref = [ 0; 0; 0 ];
+
+% Define initial state
+x_current = [0;0;0;0];  % current state of the system
 
 
 %% Simulate
-x_current = [];  % current state of the system
 
 x = x_current;     % history of states
 u = [];            % history of commands
 
-
-% loop
+% loop for simulating
 for i = 1:10
 
     % Compute MPC control
-    u_opt = control( @(u) dxdt(x_current,u), ref );
+    u_opt = control( @(x_current,u) dxdt(x_current,u), x_current, ref, u );
 
     % Update state
     [t,x_integrated] = ode45(@(t,x) dxdt(x,u_opt), [0 Ts], x_current);
@@ -39,6 +42,6 @@ subplot( 2, 1, 1 )
     plot(time, x')
     ylabel 'State trajectories'
 subplot( 2, 1, 2 )
-    plot( time, u' )
+    plot( time(2:end), u' )
     ylabel 'Control trajectories'
     xlabel 'Time (seconds)'
