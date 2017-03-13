@@ -1,4 +1,4 @@
-function [u, flag] = control( nonlinmodel, state, ref, ctrl )
+function u = control( nonlinmodel, params )
 % This function computes the MPC control output for a model of the arm
 % tracking a reference state in joint, task (Cartesian), or force space. It
 % employs the Multi-Parametric Toolbox MPT3. The MPT model is created by
@@ -31,46 +31,37 @@ function [u, flag] = control( nonlinmodel, state, ref, ctrl )
 
 
 % linearize arm model (and check linearization)
-[A, B, f, C, D, g] = linearize( nonlinmodel, state, ctrl );
-if ~isreal(A) || sum(sum(isnan(A))) > 0
-    flag = 1;
-    return
-end
+[ A, B, f ] = linearize( nonlinmodel, params.x.current, params.u.current );
 
 % convert dynamics to discrete time -- may be a native function for this
-[Ad, Bd, fd] = discretize( armModel.Ts, A, B, f );
+[Ad, Bd, fd] = discretize( params.Ts, A, B, f );
 
 % define LTI model for MPT3 package
-model = LTISystem('A',Ad,'B',Bd,'f',fd,'C',C,'D',D,'g',g,'Ts',armModel.Ts);
+model = LTISystem('A',Ad,'B',Bd,'f',fd,'Ts', params.Ts);
+% model = LTISystem('A',Ad,'B',Bd,'f',fd,'C',C,'D',D,'g',g,'Ts',params.Ts);
 % system can be affine with the form:
 %   x_dot = Ax + Bu + f
 %       y = Cx + Du + g
 
 % make model track a reference
-model.y.with('reference');
-model.y.reference = 'free';
+model.x.with('reference');
+model.x.reference = 'free';
 
-% set (hard) constraints
-model.x.min = armModel.x.min;   model.x.max = armModel.x.max;
-model.u.min = armModel.u.min;   model.u.max = armModel.u.max;
+% define constraints
+model.x.min = params.x.min;   % state constraints
+model.x.max = params.x.max;
+model.u.min = params.u.min;   % control constraints
+model.u.max = params.u.max;
 
 % define cost function (NOTE: this assumes that half of the outputs are
 % positions and half are velocities)
-nInputs = length(armModel.u.val);
-nOutputs = length(ref);
-model.u.penalty = QuadFunction( diag(params.wU*ones(nInputs,1)) );
-model.y.penalty = QuadFunction(  params.alpha * ...
-    diag([params.wP*ones(nOutputs/2,1) ; params.wV*ones(nOutputs/2,1)]) );
+model.x.penalty = QuadFunction( params.Q );
+model.u.penalty = QuadFunction( params.R );
 
 % create MPC controller
-ctrl = MPCController(model, params.H);
+mpc = MPCController(model, params.H);
+u = mpc.evaluate( params.x.current, 'x.reference', params.ref);
 
-% simulate closed-loop system to find optimal control
-loop = ClosedLoop(ctrl, model);
-Nsim = params.H - 1; % one step more than optimization horizon
-data = loop.simulate(armModel.x.val, Nsim, 'y.reference', ref);
-u = data.U;
-flag = 0;
 
 end
 
@@ -80,7 +71,7 @@ end
 
 
 
-function [A, B, c, C, D, e] = linearize( nonlinmodel, state, ctrl )
+function [A, B, c ] = linearize( nonlinmodel, state, ctrl )
 % This function linearizes the dynamics and output equation for an arm
 % model. It computes the 1st-order Taylor series approximation of
 % dynamics dx/dt = f(x,u) and output (e.g., forward kinematics) y = g(x,u)
@@ -112,29 +103,28 @@ eps = 1e-3;
 % allocate memory for matrices
 nStates = length(state);
 nInputs = length(ctrl);
-nOutputs = length(nonlinmodel(state));
 A = zeros(nStates);
 B = zeros(nStates,nInputs);
 
 % compute dynamics matrix, A
-f = nonlinmodel( ctrl, state );
+f = nonlinmodel( state, ctrl );
 for i = 1:nStates
-x_eps = x_est;
+x_eps = state;
 x_eps(i) = x_eps(i) + eps;    % one state perturbed
-f_eps = dynamics(arm, x_eps); % state-perturbed dynamics
+f_eps = nonlinmodel(x_eps, ctrl); % state-perturbed dynamics
 A(:,i) = (f_eps-f)/eps;
 end
 
 % compute input-to-state matrix, B
 for i = 1:nInputs
-u_eps = uLast;
+u_eps = ctrl;
 u_eps(i) = u_eps(i) + eps;           % one input perturbed
-f_eps = dynamics(arm, x_est, u_eps); % input-perturbed dynamics
+f_eps = nonlinmodel(state, u_eps); % input-perturbed dynamics
 B(:,i) = (f_eps-f)/eps;
 end
 
 % compute constant vector, c
-c = f - A*x_est - B*uLast;
+c = f - A*state - B*ctrl;
 
 
 end

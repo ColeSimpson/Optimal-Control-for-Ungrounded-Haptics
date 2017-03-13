@@ -1,5 +1,5 @@
-function xdot = dxdt( t, x, Tt, tt )
-% function xdot = dxdt( t, x, Tt, tt )
+function xdot = dxdt( x, t, Tt, tt )
+% function xdot = dxdt( x, t, Tt, tt )
 % This function encodes the nonlinear dynamics of the system.  Replace this
 % function with the dynamics of your system.  
 
@@ -10,7 +10,7 @@ if nargin == 4
     T2 = interp1( tt, Tt(2,:), t, 'spline' ); 
     T = [ T1; T2 ];
 else
-    T = zeros(2,1);
+    T = t;
 end
 
 % hard code in parameters in this version
