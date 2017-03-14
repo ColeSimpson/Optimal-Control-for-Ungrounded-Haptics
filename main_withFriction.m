@@ -15,6 +15,8 @@ bu = 8; % damping constant of hand (Ns/m)
 ku = 509; % spring constant of hand (N/m)
 Bl = 0.79; % actuator parameter
 
+fr = 0.05;     % limit of stiction
+
 % transfer function from actuator current to force output
 numF = Bl*[2*m 0 0];
 denF = [m 2*b 2*k];
@@ -25,8 +27,21 @@ sysd = c2d(sysF, 0.0001);   % discretize
 
 %% MPC simulation
 
-% Define MPC model
-model = LTISystem('A', A, 'B', B, 'C', C, 'D', D );
+%%% Define MPC model as a piecewise function that includes a model of
+%%% friction
+% Stiction portion
+sys1 = LTISystem('A', A, 'B', B, 'C', [0, 0], 'D', 0 );
+R_1 = Polyhedron( 'lb', 0*ones(3,1), 'ub', fr*ones(3,1) );
+
+% Dynamic friction
+sys2 = LTISystem('A', A, 'B', B, 'C', C, 'D', D );
+R_2 = Polyhedron( 'lb', fr*ones(3,1) );
+
+sys1.setDomain('xu', R_1);
+sys2.setDomain('xu', R_2);
+
+model = PWASystem([sys1, sys2]);
+
 
 % Define limits - can put limits on x, y, or u
 model.u.min = -0.5;
@@ -38,32 +53,19 @@ model.u.max = 0.5;
 model.y.penalty = QuadFunction( 1 );
 model.u.penalty = QuadFunction( 0.00001 );
 
-
-
-% Tset = model.LQRSet;
-% PN = model.LQRPenalty;
-% 
-% model.x.with('terminalSet');
-% model.x.terminalSet = Tset;
-% model.y.with('terminalPenalty');
-% model.y.terminalPenalty = PN;
-
-
-
 % add reference
 model.y.with('reference');
 model.y.reference = 'free';
-
 
 % Define the MPC controller 
 H = 20; % number of time points to look into the future for optimization
 ctrl = MPCController(model, H); 
 
-x0 = [100; 0];  % initial state
+x0 = [0; 0];  % initial state
 
 % Simulate the response of the system with the MPC controller
 loop = ClosedLoop(ctrl, model);  % simulates closed-loop response
-Nsim = 1000;  % number of steps to simulate
+Nsim = 100;  % number of steps to simulate
 data = loop.simulate(x0, Nsim, 'y.reference', -10);  % simulate!
 
 %% Plot results
@@ -73,13 +75,13 @@ hold on
 ylabel 'magnet position'
 
 subplot(3,1,2)
-plot(1:Nsim, data.Y);
+plot(data.Y');
 hold on;
 % plot(1:Nsim, ys*ones(1, Nsim), 'k--')
 ylabel('force (N)')
 
 subplot(3,1,3)
-plot(1:Nsim, data.U);
+plot(data.U');
 hold on;
 % plot(1:Nsim, us*ones(1, Nsim), 'k--')
 ylabel('current (amps)')
