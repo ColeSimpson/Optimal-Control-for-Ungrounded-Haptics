@@ -3,6 +3,18 @@ function xdot = dxdt( x, t, Tt, tt )
 % This function encodes the nonlinear dynamics of the system.  Replace this
 % function with the dynamics of your system.  
 
+% ---- include constants from MotionGenisis computation ------%
+   g = 9.81 %m/s^2         % Earth's local gravity.
+   L = 0.0  %m %0.2  m             % Distance between No and Ccm.
+   ro = 0.17  %m             % Rotor radius.
+   ri = 0.15  %m
+   h = 0.02  %m
+   m = 0.1 %kg
+   Ixx = 1/12*m*(3*(ro^2 + ri^2)+h^2)
+   Iyy = 1/12*m*(3*(ro^2 + ri^2)+h^2)
+   Izz = 1/2*m*(ro^2 + ri^2)
+%---- end of section of MotionGenisis Constants --------%
+
 if nargin == 4
     % Interpolate the data set (tt,Tt) at time t - allows a better
     % approximation than the zero-order hold
@@ -44,5 +56,12 @@ V = [V1;V2] * a2*sin(x(2));
 % % Compute Jacobian
 % J = [(-L1*sind(x(1)) - L2*sind(x(1)+x(2))) -L2*sind(x(1)+x(2));
 %      (L1*cosd(x(1)) + L2*cosd(x(1)+x(2)))   L2*cosd(x(1)+x(2))];
+%------------ add "dx/dt" from MG ------------%
+theta_dot_dot = phi_dot*((Ixx-Iyy-Izz)*wC*sin(phi)/(Iyy+m*L^2)+(Ixx-Iyy-Izz)*wC*cos(phi)^2/((Iyy+m*L^2)*sin(phi))+(Izz-Ixx-Iyy-2*m*L^2)*theta_dot/((Iyy+m*L^2)*tan(phi)));
 
-xdot = [ x(3:4); M\(T-V-(B)*x(3:4)) ];
+
+phi_dot_dot = sin(phi)*(g*L*m-(Iyy-Ixx-Izz)*wC*theta_dot-(Izz-Iyy-m*L^2)*cos(phi)*theta_dot^2)/(Ixx+m*L^2);
+
+wC_dot = phi_dot*((Ixx-Iyy-Izz)*wC/((Iyy+m*L^2)*tan(phi))+2*(Izz-Iyy-m*L^2)^2*sin(phi)*cos(phi)^2*theta_dot/(Izz*(Iyy+m*L^2))+(Izz-(Izz-Iyy-m*L^2)*sin(phi)^2)*(Izz-Ixx-Iyy-2*m*L^2-2*(Izz-Iyy-m*L^2)*sin(phi)^2)*theta_dot/(Izz*(Iyy+m*L^2)*sin(phi)));
+%------------end "dx/dt" section ---------------%
+xdot = [ theta_dot_dot; Phi_dot: wc_dot ];
