@@ -60,6 +60,7 @@ model.u.penalty = QuadFunction( params.R );
 
 % create MPC controller
 mpc = MPCController(model, params.H);
+% u = mpc.evaluate( params.x.current );
 u = mpc.evaluate( params.x.current, 'x.reference', params.ref);
 
 

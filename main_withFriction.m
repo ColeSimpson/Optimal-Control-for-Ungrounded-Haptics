@@ -15,7 +15,7 @@ bu = 8; % damping constant of hand (Ns/m)
 ku = 509; % spring constant of hand (N/m)
 Bl = 0.79; % actuator parameter
 
-fr = 0.05;     % limit of stiction
+fr = 0.01;     % limit of stiction
 
 % transfer function from actuator current to force output
 numF = Bl*[2*m 0 0];

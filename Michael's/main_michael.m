@@ -8,31 +8,27 @@ addpath( genpath([ fileparts(pwd) '/tbxmanager' ]));
 
 %% Whatever initialization nonsense
 params.Ts = 0.02;              % sampling time for discretization
-params.ref = [ 0; 1; 0; 0 ];   % where you want your system to go
+params.ref = [ 0; 0; 25; 0; 0 ];   % where you want your system to go
 
-params.x.current = [0;0;0;0;0];  % current state of the system
-params.x.min = -10*ones(3,1);  % state constraitns
-params.x.max =  10*ones(3,1);
+% x = [ phi phi_dot theta theta_dot wc ]'
+params.x.current = [10; 0; 1; 0; 300];  % current state of the system
+params.x.min = -inf*ones(5,1);  % state constraitns
+params.x.max =  inf*ones(5,1);
 
 params.u.current = [0;0];
-params.u.min = -50*ones(2,1);   % control constraints
-params.u.max =  50*ones(2,1);
+params.u.min = -inf*ones(2,1);   % control constraints
+params.u.max =  inf*ones(2,1);
 
-params.Q = diag([ 1, 1, 0.01, 0.01 ]);
+params.Q = diag([ 1, 1, 100, 1, 1 ]);
 params.R = diag(1e-6*ones(2,1));
-params.H = 30;
+params.H = 5;
 
-params.x.cuttent(1) = 0; %phi
-params.x.cuttent(2) = 0; %phi_dot
-params.x.cuttent(3) = 0; %theta
-params.x.cuttent(4) = 0; %theta_dot
-params.x.cuttent(5) = 300; %wc
 %% Simulate
 x = params.x.current;     % history of states
-u = params.u.current;            % history of commands
+u = params.u.current;     % history of commands
 
 % loop for simulating
-for i = 1:30
+for i = 1:300
 
     % Compute MPC control
     u_opt = control( @(x,u) dxdt(x,u), params );
@@ -62,6 +58,6 @@ subplot( 2, 1, 2 )
     xlabel 'Time (seconds)'
 
 figure
-    plot( x(1,:), x(2,:) )
+    plot( x(1,:), x(3,:) )
     ylabel 'State 2'
     xlabel 'State 1'

@@ -1,0 +1,5 @@
+readme for Michael’s optimal control of haptics!
+
+To run a simulation, run the script entitled main_michael.m
+
+To customize the simulation to fit your function, replace the system dynamics defined by the function dxdt.m with the dynamics of your system and change the initialization parameters in the main_michael.m script to match the constraints and features of your system.  Note: you might need to change some parameters, such as the time horizon, H, over which the function optimizes.
