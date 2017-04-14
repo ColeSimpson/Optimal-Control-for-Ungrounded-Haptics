@@ -22,11 +22,11 @@ params.Q = diag([ 1, 1, 0.01, 0.01 ]);
 params.R = diag(1e-6*ones(2,1));
 params.H = 30;
 
-params.x.cuttent(1) = 0; %phi
-params.x.cuttent(2) = 0; %phi_dot
-params.x.cuttent(3) = 0; %theta
-params.x.cuttent(4) = 0; %theta_dot
-params.x.cuttent(5) = 300; %wc
+params.x(1) = 0; %phi
+params.x(2) = 0; %phi_dot = 0;
+params.x.theta = 0;
+params.x.theta_dot = 0;
+params.x.wc = 0;
 %% Simulate
 x = params.x.current;     % history of states
 u = params.u.current;            % history of commands
