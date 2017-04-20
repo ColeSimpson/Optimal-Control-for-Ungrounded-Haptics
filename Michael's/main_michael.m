@@ -11,10 +11,12 @@ params.Ts = 0.02;              % sampling time for discretization
 params.ref = [ 0; 0; 25; 0; 0 ];   % where you want your system to go
 
 % x = [ phi phi_dot theta theta_dot wc ]'
-params.x.current = [10; 0; 1; 0; 300];  % current state of the system
+% values in rad, or rad/s
+params.x.current = [1; 0; 2; 0; 31];  % current state of the system
 params.x.min = -inf*ones(5,1);  % state constraitns
 params.x.max =  inf*ones(5,1);
 
+% u = [T_phi, T_theta]'
 params.u.current = [0;0];
 params.u.min = -inf*ones(2,1);   % control constraints
 params.u.max =  inf*ones(2,1);
